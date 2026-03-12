@@ -11,7 +11,7 @@
   };
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
-  const scoresRef = db.ref('school-quiz-scores');
+  const scoresRef = db.ref('scores/school-quiz');
 
   // ─── Difficulty config ──────────────────────
   const DIFFICULTY = {
