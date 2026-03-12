@@ -10,7 +10,10 @@
   const firebaseConfig = {
     databaseURL: FIREBASE_DB_URL + '/'
   };
-  firebase.initializeApp(firebaseConfig);
+  // Safe init — avoid duplicate app error
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
   const db = firebase.database();
   const scoresRef = db.ref('scores/school-quiz');
 
@@ -742,9 +745,20 @@
       timestamp: Date.now()
     };
 
-    scoresRef.push(data).catch(err => {
-      console.warn('Failed to save score:', err);
-    });
+    // Try Firebase SDK first, fallback to REST API
+    scoresRef.push(data)
+      .then(() => { console.log('Score saved via SDK'); })
+      .catch(err => {
+        console.warn('SDK save failed, trying REST:', err);
+        // Fallback: save via REST API
+        fetch(FIREBASE_DB_URL + '/scores/school-quiz.json', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        })
+        .then(r => { if (r.ok) console.log('Score saved via REST'); })
+        .catch(e => console.warn('REST save also failed:', e));
+      });
   }
 
   function loadLeaderboard(filter) {
@@ -811,10 +825,49 @@
         });
       })
       .catch(err => {
-        loading.style.display = 'none';
-        empty.textContent = 'Ошибка загрузки';
-        empty.style.display = 'block';
-        console.warn('Leaderboard error:', err);
+        console.warn('SDK leaderboard failed, trying REST:', err);
+        // Fallback to REST API
+        fetch(FIREBASE_DB_URL + '/scores/school-quiz.json?orderBy="timestamp"&limitToLast=100')
+          .then(r => r.json())
+          .then(data => {
+            loading.style.display = 'none';
+            if (!data) { empty.style.display = 'block'; return; }
+            const entries = [];
+            Object.entries(data).forEach(([key, val]) => {
+              val._key = key;
+              if (filter === 'all' || val.difficulty === filter) entries.push(val);
+            });
+            entries.sort((a, b) => {
+              const pctA = a.score / a.total;
+              const pctB = b.score / b.total;
+              if (pctB !== pctA) return pctB - pctA;
+              return a.time - b.time;
+            });
+            if (entries.length === 0) { empty.style.display = 'block'; return; }
+            entries.slice(0, 50).forEach((entry, i) => {
+              const tr = document.createElement('tr');
+              if (entry.sessionId === state.currentSessionId) tr.className = 'current-player';
+              let rank = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : String(i + 1);
+              const diffIcon = entry.difficulty === 'easy' ? '⭐' : entry.difficulty === 'medium' ? '🧠' : '🏆';
+              const deleteBtn = isAdmin && entry._key
+                ? `<td><button class="lb-delete-btn" data-key="${entry._key}">✕</button></td>`
+                : (isAdmin ? '<td></td>' : '');
+              tr.innerHTML = `
+                <td>${rank}</td>
+                <td>${escapeHtml(entry.name)} ${diffIcon}</td>
+                <td>${entry.score}/${entry.total}</td>
+                <td>${formatTime(entry.time)}</td>
+                ${deleteBtn}
+              `;
+              tbody.appendChild(tr);
+            });
+          })
+          .catch(err2 => {
+            loading.style.display = 'none';
+            empty.textContent = 'Ошибка загрузки';
+            empty.style.display = 'block';
+            console.warn('REST leaderboard also failed:', err2);
+          });
       });
   }
 
