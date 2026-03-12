@@ -1,10 +1,10 @@
-const CACHE_NAME = 'school-quiz-v1';
+const CACHE_NAME = 'school-quiz-v2';
 const ASSETS = [
   './',
   './index.html',
-  './style.css',
-  './app.js',
-  './questions.js',
+  './style.css?v=2',
+  './app.js?v=2',
+  './questions.js?v=2',
   './manifest.json'
 ];
 
@@ -25,7 +25,7 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // Network first for Firebase, cache first for app assets
+  // Network first for Firebase and external resources
   if (event.request.url.includes('firebasedatabase') || event.request.url.includes('gstatic')) {
     event.respondWith(
       fetch(event.request).catch(() => caches.match(event.request))
@@ -33,7 +33,14 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  // Network first, fallback to cache — ensures latest version
   event.respondWith(
-    caches.match(event.request).then(cached => cached || fetch(event.request))
+    fetch(event.request)
+      .then(response => {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
