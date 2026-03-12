@@ -6,12 +6,17 @@
   'use strict';
 
   // ─── Firebase ───────────────────────────────
+  const FIREBASE_DB_URL = 'https://how-to-train-a-dragon-afaed-default-rtdb.europe-west1.firebasedatabase.app';
   const firebaseConfig = {
-    databaseURL: 'https://how-to-train-a-dragon-afaed-default-rtdb.europe-west1.firebasedatabase.app/'
+    databaseURL: FIREBASE_DB_URL + '/'
   };
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
   const scoresRef = db.ref('scores/school-quiz');
+
+  // ─── Admin ─────────────────────────────────
+  let isAdmin = false;
+  const ADMIN_PASSWORD = '11qq11!';
 
   // ─── Difficulty config ──────────────────────
   const DIFFICULTY = {
@@ -128,9 +133,16 @@
     const pool = QUESTIONS[state.difficulty];
     if (!pool || pool.length === 0) return;
 
-    // Shuffle and pick
-    const shuffled = shuffleArray([...pool]);
-    state.questions = shuffled.slice(0, Math.min(diff.count, shuffled.length));
+    // Guarantee mix of question types including images
+    const imageQs = shuffleArray(pool.filter(q => q.type === 'image'));
+    const otherQs = shuffleArray(pool.filter(q => q.type !== 'image'));
+    const count = Math.min(diff.count, pool.length);
+    // Guarantee at least 2 image questions (or all if fewer exist)
+    const guaranteedImages = imageQs.slice(0, Math.min(2, imageQs.length));
+    const remaining = count - guaranteedImages.length;
+    // Fill the rest from other questions + leftover images
+    const restPool = shuffleArray([...otherQs, ...imageQs.slice(guaranteedImages.length)]);
+    state.questions = shuffleArray([...guaranteedImages, ...restPool.slice(0, remaining)]);
     state.currentIndex = 0;
     state.score = 0;
     state.answers = [];
@@ -646,6 +658,64 @@
         showScreen('home');
       }
     });
+
+    // Admin buttons
+    document.getElementById('admin-btn').addEventListener('click', toggleAdmin);
+    document.getElementById('admin-clear-btn').addEventListener('click', clearAllScores);
+
+    // Delegate delete button clicks
+    document.getElementById('leaderboard-body').addEventListener('click', (e) => {
+      const btn = e.target.closest('.lb-delete-btn');
+      if (btn && btn.dataset.key) {
+        deleteEntry(btn.dataset.key);
+      }
+    });
+  }
+
+  // ─── Admin Functions ────────────────────────
+  function toggleAdmin() {
+    if (isAdmin) {
+      isAdmin = false;
+      document.getElementById('admin-btn').textContent = '🔒 Админ';
+      document.getElementById('admin-btn').classList.remove('admin-active');
+      document.getElementById('admin-clear-btn').style.display = 'none';
+      // Remove delete buttons
+      document.querySelectorAll('.lb-delete-btn').forEach(b => b.remove());
+      return;
+    }
+    const pwd = prompt('Введите пароль администратора:');
+    if (pwd === ADMIN_PASSWORD) {
+      isAdmin = true;
+      document.getElementById('admin-btn').textContent = '🔓 Выйти';
+      document.getElementById('admin-btn').classList.add('admin-active');
+      document.getElementById('admin-clear-btn').style.display = 'inline-flex';
+      // Reload leaderboard with delete buttons
+      loadLeaderboard();
+    } else if (pwd !== null) {
+      alert('Неверный пароль!');
+    }
+  }
+
+  function deleteEntry(id) {
+    if (!isAdmin) return;
+    if (!confirm('Удалить эту запись?')) return;
+    fetch(FIREBASE_DB_URL + '/scores/school-quiz/' + id + '.json', { method: 'DELETE' })
+      .then(res => {
+        if (res.ok) loadLeaderboard();
+        else alert('Ошибка при удалении');
+      })
+      .catch(() => alert('Ошибка сети'));
+  }
+
+  function clearAllScores() {
+    if (!isAdmin) return;
+    if (!confirm('Удалить ВСЕ записи из таблицы? Это нельзя отменить!')) return;
+    fetch(FIREBASE_DB_URL + '/scores/school-quiz.json', { method: 'DELETE' })
+      .then(res => {
+        if (res.ok) loadLeaderboard();
+        else alert('Ошибка при очистке');
+      })
+      .catch(() => alert('Ошибка сети'));
   }
 
   function saveScore() {
@@ -680,6 +750,7 @@
         const entries = [];
         snapshot.forEach(child => {
           const val = child.val();
+          val._key = child.key;
           if (filter === 'all' || val.difficulty === filter) {
             entries.push(val);
           }
@@ -713,11 +784,15 @@
           const diffIcon = entry.difficulty === 'easy' ? '⭐' :
                            entry.difficulty === 'medium' ? '🧠' : '🏆';
 
+          const deleteBtn = isAdmin && entry._key
+            ? `<td><button class="lb-delete-btn" data-key="${entry._key}">✕</button></td>`
+            : (isAdmin ? '<td></td>' : '');
           tr.innerHTML = `
             <td>${rank}</td>
             <td>${escapeHtml(entry.name)} ${diffIcon}</td>
             <td>${entry.score}/${entry.total}</td>
             <td>${formatTime(entry.time)}</td>
+            ${deleteBtn}
           `;
           tbody.appendChild(tr);
         });
