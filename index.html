@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<!--
+   ______                            __
+  / ____/___  ____ ___  ____  __  __/ /____  _____
+ / /   / __ \/ __ `__ \/ __ \/ / / / __/ _ \/ ___/
+/ /___/ /_/ / / / / / / /_/ / /_/ / /_/  __/ /
+\____/\____/_/ /_/ /_/ .___/\__,_/\__/\___/_/
+                    /_/
+        Created with Perplexity Computer
+        https://www.perplexity.ai/computer
+-->
+<meta name="generator" content="Perplexity Computer">
+<meta name="author" content="Perplexity Computer">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#4F46E5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Подготовка к школе</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192x192.png">
+</head>
+<body>
+  <!-- HOME SCREEN -->
+  <div id="screen-home" class="screen active">
+    <div class="home-container">
+      <div class="home-header">
+        <div class="home-icon">🎓</div>
+        <h1 class="home-title">Подготовка к школе</h1>
+        <p class="home-subtitle">Викторина для будущих отличников</p>
+      </div>
+
+      <div class="home-card">
+        <label class="input-label" for="player-name">Как тебя зовут?</label>
+        <input type="text" id="player-name" class="name-input" placeholder="Введи своё имя" maxlength="20" autocomplete="off">
+      </div>
+
+      <div class="home-card">
+        <p class="difficulty-label">Выбери уровень сложности:</p>
+        <div class="difficulty-buttons">
+          <button class="btn btn-difficulty btn-easy" data-difficulty="easy">
+            <span class="btn-icon">⭐</span>
+            <span class="btn-title">Звёздочка</span>
+            <span class="btn-desc">10 вопросов · 60 сек</span>
+          </button>
+          <button class="btn btn-difficulty btn-medium" data-difficulty="medium">
+            <span class="btn-icon">🧠</span>
+            <span class="btn-title">Знайка</span>
+            <span class="btn-desc">15 вопросов · 45 сек</span>
+          </button>
+          <button class="btn btn-difficulty btn-hard" data-difficulty="hard">
+            <span class="btn-icon">🏆</span>
+            <span class="btn-title">Эрудит</span>
+            <span class="btn-desc">20 вопросов · 35 сек</span>
+          </button>
+        </div>
+      </div>
+
+      <button class="btn btn-secondary btn-leaderboard-home" id="btn-leaderboard-home">
+        📊 Таблица лидеров
+      </button>
+    </div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div id="screen-game" class="screen">
+    <div class="game-container">
+      <div class="game-header">
+        <div class="game-info-row">
+          <span class="game-player" id="game-player"></span>
+          <span class="game-score" id="game-score">0</span>
+        </div>
+        <div class="game-progress-row">
+          <span class="game-counter" id="game-counter">1/10</span>
+          <span class="game-timer-text" id="game-timer-text">60</span>
+        </div>
+        <div class="timer-bar-container">
+          <div class="timer-bar" id="timer-bar"></div>
+        </div>
+      </div>
+
+      <div class="game-body">
+        <div class="category-badge" id="category-badge">Математика</div>
+
+        <div class="question-image-container" id="question-image-container" style="display:none">
+          <img id="question-image" class="question-image" alt="Изображение к вопросу">
+        </div>
+
+        <div class="question-text" id="question-text"></div>
+
+        <div class="answer-area" id="answer-area"></div>
+      </div>
+
+      <!-- Explanation overlay -->
+      <div class="explanation-overlay" id="explanation-overlay">
+        <div class="explanation-card" id="explanation-card">
+          <div class="explanation-icon" id="explanation-icon">✅</div>
+          <div class="explanation-text" id="explanation-text"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div id="screen-results" class="screen">
+    <div class="results-container">
+      <div class="results-stars" id="results-stars"></div>
+      <h2 class="results-title" id="results-title">Отлично!</h2>
+      <div class="results-score" id="results-score"></div>
+      <div class="results-time" id="results-time"></div>
+      <div class="results-buttons">
+        <button class="btn btn-primary" id="btn-review">📝 Посмотреть ответы</button>
+        <button class="btn btn-secondary" id="btn-leaderboard-results">📊 Таблица лидеров</button>
+        <button class="btn btn-primary" id="btn-play-again">🔄 Играть снова</button>
+      </div>
+
+      <!-- Review section (hidden by default) -->
+      <div class="review-section" id="review-section" style="display:none">
+        <h3 class="review-title">Обзор ответов</h3>
+        <div id="review-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEADERBOARD SCREEN -->
+  <div id="screen-leaderboard" class="screen">
+    <div class="leaderboard-container">
+      <h2 class="leaderboard-title">📊 Таблица лидеров</h2>
+      <div class="leaderboard-filters">
+        <button class="btn btn-filter active" data-filter="all">Все</button>
+        <button class="btn btn-filter" data-filter="easy">⭐</button>
+        <button class="btn btn-filter" data-filter="medium">🧠</button>
+        <button class="btn btn-filter" data-filter="hard">🏆</button>
+      </div>
+      <div class="leaderboard-table-wrapper">
+        <table class="leaderboard-table" id="leaderboard-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Имя</th>
+              <th>Счёт</th>
+              <th>Время</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard-body"></tbody>
+        </table>
+        <div class="leaderboard-empty" id="leaderboard-empty" style="display:none">
+          Пока нет результатов. Будь первым!
+        </div>
+        <div class="leaderboard-loading" id="leaderboard-loading">
+          Загрузка...
+        </div>
+      </div>
+      <button class="btn btn-secondary btn-back" id="btn-back-from-leaderboard">← Назад</button>
+    </div>
+  </div>
+
+  <footer style="text-align:center;padding:16px;font-size:12px;color:#9ca3af;">
+    <a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer" style="color:#9ca3af;text-decoration:none;">Created with Perplexity Computer</a>
+  </footer>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="./questions.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
