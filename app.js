@@ -133,16 +133,29 @@
     const pool = QUESTIONS[state.difficulty];
     if (!pool || pool.length === 0) return;
 
-    // Guarantee mix of question types including images
-    const imageQs = shuffleArray(pool.filter(q => q.type === 'image'));
-    const otherQs = shuffleArray(pool.filter(q => q.type !== 'image'));
+    // Guarantee mix of question types for variety
     const count = Math.min(diff.count, pool.length);
-    // Guarantee at least 2 image questions (or all if fewer exist)
-    const guaranteedImages = imageQs.slice(0, Math.min(2, imageQs.length));
-    const remaining = count - guaranteedImages.length;
-    // Fill the rest from other questions + leftover images
-    const restPool = shuffleArray([...otherQs, ...imageQs.slice(guaranteedImages.length)]);
-    state.questions = shuffleArray([...guaranteedImages, ...restPool.slice(0, remaining)]);
+    const byType = {};
+    pool.forEach(q => {
+      if (!byType[q.type]) byType[q.type] = [];
+      byType[q.type].push(q);
+    });
+    // Shuffle each type pool
+    Object.keys(byType).forEach(t => { byType[t] = shuffleArray(byType[t]); });
+    // Guarantee at least N of each special type
+    const guaranteed = [];
+    const guaranteeCounts = { image: 2, ordering: 2, true_false: 1, number_input: 1 };
+    const usedIds = new Set();
+    Object.entries(guaranteeCounts).forEach(([type, minCount]) => {
+      if (byType[type]) {
+        const pick = byType[type].slice(0, Math.min(minCount, byType[type].length));
+        pick.forEach(q => { guaranteed.push(q); usedIds.add(q.id); });
+      }
+    });
+    // Fill remaining from shuffled full pool
+    const remaining = count - guaranteed.length;
+    const restPool = shuffleArray(pool.filter(q => !usedIds.has(q.id)));
+    state.questions = shuffleArray([...guaranteed, ...restPool.slice(0, remaining)]);
     state.currentIndex = 0;
     state.score = 0;
     state.answers = [];

@@ -1,10 +1,10 @@
-const CACHE_NAME = 'school-quiz-v3';
+const CACHE_NAME = 'school-quiz-v4';
 const ASSETS = [
   './',
   './index.html',
-  './style.css?v=3',
-  './app.js?v=3',
-  './questions.js?v=3',
+  './style.css?v=4',
+  './app.js?v=4',
+  './questions.js?v=4',
   './manifest.json'
 ];
 
